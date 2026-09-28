@@ -1,0 +1,45 @@
+name: Build Cement Hisab APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Android project
+        run: |
+          mkdir project
+          unzip -q CementHisab_V3_Android_Project.zip -d project
+
+      - name: Find project folder
+        run: |
+          echo "Searching Android project..."
+          find project -name settings.gradle -o -name settings.gradle.kts
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          PROJECT_DIR=$(dirname "$(find project -name settings.gradle -o -name settings.gradle.kts | head -1)")
+          echo "Project directory: $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cement-Hisab-APK
+          path: project/**/app/build/outputs/apk/debug/app-debug.apk
