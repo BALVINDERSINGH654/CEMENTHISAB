@@ -21,8 +21,7 @@ jobs:
 
       - name: Find project folder
         run: |
-          echo "Searching Android project..."
-          find project -name settings.gradle -o -name settings.gradle.kts
+          find project -maxdepth 3 -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \)
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,16 +29,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Build APK
         run: |
           PROJECT_DIR=$(dirname "$(find project -name settings.gradle -o -name settings.gradle.kts | head -1)")
           echo "Project directory: $PROJECT_DIR"
           cd "$PROJECT_DIR"
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Cement-Hisab-APK
-          path: project/**/app/build/outputs/apk/debug/app-debug.apk
+          path: project/**/app/build/outputs/apk/debug/app-debug.apk 
