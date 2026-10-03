@@ -1,46 +1,21 @@
-name: Build Cement Hisab APK
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Extract Android project
+name: Fix XML ampersands
         run: |
-          mkdir project
-          unzip -q CementHisab_V3_Android_Project.zip -d project
+          python3 - <<'PY'
+          import os
+          import re
 
-      - name: Find project folder
-        run: |
-          find project -maxdepth 3 -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \)
+          root = "project"
+          pattern = re.compile(r'&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9A-Fa-f]+;)')
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build APK
-        run: |
-          PROJECT_DIR=$(dirname "$(find project -name settings.gradle -o -name settings.gradle.kts | head -1)")
-          echo "Project directory: $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          gradle assembleDebug --stacktrace
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Cement-Hisab-APK
-          path: project/**/app/build/outputs/apk/debug/app-debug.apk 
+          for base, dirs, files in os.walk(root):
+              for name in files:
+                  if name.endswith(".xml"):
+                      path = os.path.join(base, name)
+                      with open(path, "r", encoding="utf-8") as f:
+                          data = f.read()
+                      fixed = pattern.sub("&amp;", data)
+                      if fixed != data:
+                          with open(path, "w", encoding="utf-8") as f:
+                              f.write(fixed)
+                          print("Fixed:", path)
+          PY 
